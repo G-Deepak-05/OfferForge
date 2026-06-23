@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: offerforge-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=offerforge
+      - POSTGRES_USER=batman
+      - POSTGRES_PASSWORD=darkknight
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - offerforge-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: offerforge-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - offerforge-network
+
+  judge0-db:
+    image: postgres:16-alpine
+    container_name: judge0-db
+    environment:
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0
+    volumes:
+      - judge0-db-data:/var/lib/postgresql/data
+    networks:
+      - offerforge-network
+
+  judge0:
+    platform: linux/amd64
+    image: judge0/judge0:1.13.0
+    container_name: judge0-server
+    ports:
+      - "2358:2358"
+    privileged: true
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=judge0-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0
+    depends_on:
+      - redis
+      - judge0-db
+    restart: always
+    networks:
+      - offerforge-network
+
+  judge0-worker:
+    platform: linux/amd64
+    image: judge0/judge0:1.13.0
+    container_name: judge0-worker
+    command: ["./scripts/workers"]
+    privileged: true
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=judge0-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0
+    depends_on:
+      - redis
+      - judge0-db
+    restart: always
+    networks:
+      - offerforge-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: offerforge-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/offerforge
+      - SPRING_DATASOURCE_USERNAME=batman
+      - SPRING_DATASOURCE_PASSWORD=darkknight
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - JUDGE0_API_URL=http://judge0:2358
+      - NVIDIA_NIM_API_KEY=${NVIDIA_NIM_API_KEY}
+    depends_on:
+      - db
+      - redis
+      - judge0
+    networks:
+      - offerforge-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: offerforge-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    depends_on:
+      - backend
+    networks:
+      - offerforge-network
+
+volumes:
+  db-data:
+  redis-data:
+  judge0-db-data:
+
+networks:
+  offerforge-network:
+    driver: bridge

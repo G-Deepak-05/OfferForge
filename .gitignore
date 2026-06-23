@@ -1,0 +1,30 @@
+# Secrets & Environment variables
+.env
+.env*.local
+
+# macOS files
+.DS_Store
+
+# Java / Maven compiled packages
+**/target/
+*.jar
+*.war
+*.ear
+
+# Node dependencies & next builds
+**/node_modules/
+**/.next/
+**/out/
+**/build/
+**/dist/
+.npm
+npm-debug.log*
+
+# IDE specific settings
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
