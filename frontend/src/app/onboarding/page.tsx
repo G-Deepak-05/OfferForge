@@ -12,6 +12,8 @@ interface User {
   experience: string;
   targetCompanies: string[];
   preferredLanguages: string[];
+  resumeText?: string;
+  credits?: number;
 }
 
 export default function OnboardingPage() {
@@ -23,6 +25,7 @@ export default function OnboardingPage() {
   const [experience, setExperience] = useState("Student");
   const [targetCompanies, setTargetCompanies] = useState<string[]>([]);
   const [preferredLanguages, setPreferredLanguages] = useState<string[]>([]);
+  const [resumeText, setResumeText] = useState("");
   
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,6 +52,9 @@ export default function OnboardingPage() {
         }
         if (u.preferredLanguages && u.preferredLanguages.length > 0) {
           setPreferredLanguages(u.preferredLanguages);
+        }
+        if (u.resumeText) {
+          setResumeText(u.resumeText);
         }
       }
     }
@@ -97,6 +103,7 @@ export default function OnboardingPage() {
           experience,
           targetCompanies,
           preferredLanguages,
+          resumeText: resumeText.trim(),
         }),
       });
 
@@ -231,6 +238,21 @@ export default function OnboardingPage() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Question 5: Resume Text */}
+          <div className="flex flex-col gap-1.5">
+            <label className="font-bold text-text-secondary flex items-center gap-1.5">
+              <span className="w-3.5 h-3.5 flex items-center justify-center text-accent">📄</span>
+              5. Paste your Resume / CV Text (for personalized Copilot suggestions)
+            </label>
+            <textarea
+              placeholder="Paste your skills, experience, and project highlights here..."
+              value={resumeText}
+              onChange={(e) => setResumeText(e.target.value)}
+              rows={4}
+              className="bg-neutral-900 border border-panel-border rounded-lg px-3.5 py-2.5 text-foreground placeholder-text-muted focus:outline-none focus:border-accent font-semibold resize-none"
+            />
           </div>
 
           {/* Save Button */}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Volume2, VolumeX, Lightbulb, Sparkles } from "lucide-react";
+import { Send, Volume2, VolumeX, Lightbulb, Sparkles, Mic, MicOff } from "lucide-react";
 
 interface Message {
   sender: string; // "interviewer" | "candidate"
@@ -24,7 +24,111 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 }) => {
   const [input, setInput] = useState("");
   const [speechEnabled, setSpeechEnabled] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [autoSubmit, setAutoSubmit] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const silenceTimerRef = useRef<any>(null);
+  const inputRef = useRef("");
+  const autoSubmitRef = useRef(false);
+
+  // Sync ref with input state
+  useEffect(() => {
+    inputRef.current = input;
+  }, [input]);
+
+  // Sync ref with autoSubmit state
+  useEffect(() => {
+    autoSubmitRef.current = autoSubmit;
+  }, [autoSubmit]);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const rec = new SpeechRecognition();
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = "en-US";
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        rec.onresult = (event: any) => {
+          let interimTranscript = "";
+          let finalTranscript = "";
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript + " ";
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+
+          setInput((prev) => {
+            const base = prev.trim();
+            const addition = (finalTranscript || interimTranscript).trim();
+            const newText = (base.endsWith(addition) || addition === "") ? prev : (base + " " + addition);
+            inputRef.current = newText;
+
+            // Voice triggered auto-submit in mock interview
+            if (autoSubmitRef.current && newText.trim() !== "") {
+              if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+              silenceTimerRef.current = setTimeout(() => {
+                triggerVoiceSubmit();
+              }, 1500);
+            }
+
+            return newText;
+          });
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        rec.onerror = (e: any) => {
+          console.error("Speech recognition error:", e);
+          setIsListening(false);
+        };
+
+        rec.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current = rec;
+      }
+    }
+
+    return () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const triggerVoiceSubmit = () => {
+    const text = inputRef.current.trim();
+    if (text) {
+      onSendMessage(text);
+      setInput("");
+    }
+  };
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert("Speech recognition is not supported in this browser. Please use Chrome or Safari.");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      setIsListening(true);
+      recognitionRef.current.start();
+    }
+  };
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
@@ -188,21 +292,58 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       {/* Input Message Composer */}
-      <div className="p-4 border-t border-panel-border bg-[#161719]/80 flex gap-2">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="Explain your approach, ask questions or write notes..."
-          className="flex-1 bg-neutral-900 border border-panel-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-text-muted focus:outline-none focus:border-accent resize-none h-[42px] max-h-[80px]"
-        />
-        <button
-          onClick={handleSend}
-          disabled={!input.trim() || isThinking}
-          className="p-3 bg-accent hover:bg-accent-hover text-white rounded-xl disabled:opacity-40 disabled:hover:bg-accent transition-all duration-200 shadow-lg shadow-accent/20 flex items-center justify-center"
-        >
-          <Send size={16} />
-        </button>
+      <div className="p-4 border-t border-panel-border bg-[#161719]/80 flex flex-col gap-2">
+        {/* Voice Trigger Settings Bar */}
+        <div className="flex items-center justify-between text-[10px] text-text-muted px-1">
+          <div className="flex items-center gap-1.5 bg-neutral-900/30 px-2.5 py-1 rounded border border-panel-border/30">
+            <input
+              type="checkbox"
+              id="interview-auto-submit-chk"
+              checked={autoSubmit}
+              onChange={(e) => setAutoSubmit(e.target.checked)}
+              className="rounded border-panel-border text-accent focus:ring-accent bg-neutral-800"
+            />
+            <label htmlFor="interview-auto-submit-chk" className="cursor-pointer font-bold select-none">
+              Auto-Submit Voice (1.5s Silence Trigger)
+            </label>
+          </div>
+          {isListening && (
+            <span className="text-red-400 font-extrabold flex items-center gap-1 animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              Mic Recording
+            </span>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          {/* Microphone Capture Button */}
+          <button
+            onClick={toggleListening}
+            className={`p-3 rounded-xl border transition-all duration-200 flex items-center justify-center ${
+              isListening
+                ? "bg-red-500/15 border-red-500/40 text-red-400 animate-pulse shadow-md shadow-red-500/10"
+                : "bg-neutral-900 border-panel-border text-text-muted hover:text-foreground hover:bg-neutral-800"
+            }`}
+            title="Speak your response"
+          >
+            {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+          </button>
+
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Explain your approach, ask questions or write notes..."
+            className="flex-1 bg-neutral-900 border border-panel-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-text-muted focus:outline-none focus:border-accent resize-none h-[42px] max-h-[80px]"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || isThinking}
+            className="p-3 bg-accent hover:bg-accent-hover text-white rounded-xl disabled:opacity-40 disabled:hover:bg-accent transition-all duration-200 shadow-lg shadow-accent/20 flex items-center justify-center"
+          >
+            <Send size={16} />
+          </button>
+        </div>
       </div>
     </div>
   );

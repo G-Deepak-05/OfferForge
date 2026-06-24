@@ -114,7 +114,7 @@ public class QuestionService {
             String aiResponseJson = nimClient.generate(
                     PromptTemplates.QUESTION_GENERATOR_SYSTEM, 
                     userPrompt, 
-                    "meta/llama-3.3-70b-instruct"
+                    "deepseek-ai/deepseek-v4-flash"
             );
 
             // Parse response

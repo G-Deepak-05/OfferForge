@@ -106,7 +106,7 @@ public class InterviewService {
                 aiResponse = nimClient.generate(
                         systemPrompt,
                         chatHistoryBuilder.toString(),
-                        "meta/llama-3.3-70b-instruct"
+                        "deepseek-ai/deepseek-v4-flash"
                 );
 
                 // Add AI's response to history
@@ -147,7 +147,7 @@ public class InterviewService {
             String feedbackReportJson = nimClient.generate(
                     PromptTemplates.OVERALL_FEEDBACK_SYSTEM,
                     userPrompt,
-                    "meta/llama-3.3-70b-instruct"
+                    "deepseek-ai/deepseek-v4-flash"
             );
 
             // Parse response

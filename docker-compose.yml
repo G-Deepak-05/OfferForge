@@ -95,6 +95,11 @@ services:
       - SPRING_DATA_REDIS_PORT=6379
       - JUDGE0_API_URL=http://judge0:2358
       - NVIDIA_NIM_API_KEY=${NVIDIA_NIM_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - OLLAMA_API_URL=${OLLAMA_API_URL:-http://host.docker.internal:11435}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-deepseek-r1:8b}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - db
       - redis

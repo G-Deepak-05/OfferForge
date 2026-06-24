@@ -40,10 +40,26 @@ public class User {
     @Column(name = "language")
     private List<String> preferredLanguages;
 
+    @Column(columnDefinition = "TEXT")
+    private String resumeText;
+
+    private Integer credits;
+
     private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (credits == null) {
+            credits = 50; // Replicating Parakeet AI: Give 50 free credits
+        }
+    }
+
+    @PreUpdate
+    @PostLoad
+    protected void ensureCredits() {
+        if (credits == null) {
+            credits = 50;
+        }
     }
 }

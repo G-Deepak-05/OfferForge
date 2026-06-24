@@ -69,8 +69,19 @@ public class AuthController {
                     request.getCollege(),
                     request.getExperience(),
                     request.getTargetCompanies(),
-                    request.getPreferredLanguages()
+                    request.getPreferredLanguages(),
+                    request.getResumeText()
             );
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/user/{id}/credits")
+    public ResponseEntity<?> addCredits(@PathVariable UUID id, @RequestParam int amount) {
+        try {
+            User user = userService.addCredits(id, amount);
             return ResponseEntity.ok(user);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -108,5 +119,6 @@ public class AuthController {
         private String experience;
         private List<String> targetCompanies;
         private List<String> preferredLanguages;
+        private String resumeText;
     }
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { StatsOverview } from "../components/Dashboard/StatsOverview";
 import { WeakTopicAnalyzer } from "../components/Dashboard/WeakTopicAnalyzer";
 import { Briefcase, Calendar, ChevronRight, Play, User as UserIcon, Plus } from "lucide-react";
@@ -14,6 +15,8 @@ interface User {
   experience: string;
   targetCompanies: string[];
   preferredLanguages: string[];
+  resumeText?: string;
+  credits?: number;
 }
 
 interface InterviewSession {
@@ -186,12 +189,29 @@ export default function DashboardPage() {
             Welcome Back, {user.name}
             <span className="text-accent">.</span>
           </h1>
-          <p className="text-xs text-text-muted mt-1 font-semibold">
-            Track metrics, review O(N) complexity paths, and forge job offers.
+          <p className="text-xs text-text-muted mt-1 font-semibold flex flex-wrap items-center gap-2">
+            <span>Track metrics, review O(N) complexity paths, and forge job offers.</span>
+            {user.credits !== undefined && (
+              <Link
+                href="/billing"
+                className="px-2 py-0.5 rounded bg-accent/15 border border-accent/25 hover:border-accent/40 text-accent font-extrabold flex items-center gap-1 hover:bg-accent/25 transition duration-150"
+              >
+                <span>🦜</span>
+                <span>{user.credits} Copilot Credits</span>
+              </Link>
+            )}
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2.5">
+          <Link
+            href="/copilot"
+            className="flex items-center gap-1.5 px-4.5 py-2.5 bg-neutral-900 border border-panel-border hover:bg-neutral-800 text-foreground hover:text-accent-hover rounded-lg text-xs font-extrabold transition shadow-md"
+            id="start-copilot-btn"
+          >
+            <span className="text-accent-violet">⚡</span>
+            <span>Launch Live Copilot</span>
+          </Link>
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-1.5 px-4.5 py-2.5 bg-accent hover:bg-accent-hover text-white rounded-lg text-xs font-extrabold transition shadow-lg shadow-accent/15"
@@ -200,6 +220,19 @@ export default function DashboardPage() {
             <Plus size={14} />
             <span>Start Mock Round</span>
           </button>
+          <Link
+            href="/billing"
+            className="px-4.5 py-2.5 bg-neutral-900 border border-panel-border hover:bg-[#191b22] hover:border-accent/40 text-xs font-extrabold text-text-secondary hover:text-accent rounded-lg transition text-center flex items-center gap-1.5"
+          >
+            <span>💰</span>
+            <span>Buy Credits</span>
+          </Link>
+          <Link
+            href="/onboarding"
+            className="px-4 py-2.5 bg-neutral-900 border border-panel-border hover:bg-neutral-800 text-xs font-semibold text-text-muted hover:text-foreground rounded-lg transition text-center flex items-center"
+          >
+            Update Resume
+          </Link>
           <button
             onClick={handleLogout}
             className="px-4 py-2.5 bg-neutral-900 border border-panel-border hover:bg-neutral-800 text-xs font-semibold text-text-muted hover:text-foreground rounded-lg transition"

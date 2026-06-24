@@ -60,7 +60,7 @@ public class UserService {
         return userRepository.findById(id);
     }
 
-    public User updateUserProfile(UUID id, String name, String college, String experience, List<String> targetCompanies, List<String> preferredLanguages) {
+    public User updateUserProfile(UUID id, String name, String college, String experience, List<String> targetCompanies, List<String> preferredLanguages, String resumeText) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -69,7 +69,15 @@ public class UserService {
         user.setExperience(experience);
         user.setTargetCompanies(targetCompanies);
         user.setPreferredLanguages(preferredLanguages);
+        user.setResumeText(resumeText);
 
+        return userRepository.save(user);
+    }
+
+    public User addCredits(UUID id, int amount) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setCredits((user.getCredits() == null ? 0 : user.getCredits()) + amount);
         return userRepository.save(user);
     }
 }

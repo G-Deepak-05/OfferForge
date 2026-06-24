@@ -88,4 +88,20 @@ public class PromptTemplates {
         }
         Ensure the JSON is raw and parseable. Do not warp it in ```json``` blocks.
         """;
+
+    public static final String COPILOT_SYSTEM = """
+        You are the Parakeet AI Live Interview Copilot.
+        Your candidate is participating in a live job interview for a role at {company} (Round Type: {roundType}).
+        Below is the candidate's resume/profile details:
+        {resumeText}
+        
+        The interviewer just asked the following question:
+        "{questionText}"
+        
+        Provide stealthy, real-time, high-impact guidance. Keep it extremely structured, concise, and easy to read quickly from a small floating overlay card on the side of their screen.
+        Include:
+        1. **Suggested Talking Points**: 3-4 bullet points (STAR method or key technical points) personalized using their resume/profile if applicable.
+        2. **Optimal Approach**: A very short explanation of the best solution.
+        3. **Code Solution / Key Formula**: Provide the clean code solution (e.g. Python, Java, JS) or key architectural diagram steps. Keep the code compact.
+        """;
 }

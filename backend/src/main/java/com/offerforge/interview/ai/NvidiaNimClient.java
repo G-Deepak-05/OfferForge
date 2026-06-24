@@ -16,12 +16,29 @@ import java.time.Duration;
 public class NvidiaNimClient {
 
     private final String apiKey;
-    private final String nimEndpoint = "https://integrate.api.nvidia.com/v1/chat/completions";
+    private final String provider; // "nvidia" or "ollama"
+    private final String endpoint;
+    private final String defaultModel;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public NvidiaNimClient(@Value("${nvidia.nim.api-key:}") String apiKey) {
+    public NvidiaNimClient(
+            @Value("${nvidia.nim.api-key:}") String apiKey,
+            @Value("${llm.provider:ollama}") String provider,
+            @Value("${ollama.api-url:http://host.docker.internal:11434}") String ollamaApiUrl,
+            @Value("${ollama.model:deepseek-r1:8b}") String ollamaModel
+    ) {
         this.apiKey = apiKey;
+        this.provider = provider.toLowerCase();
+        
+        if ("ollama".equals(this.provider)) {
+            this.endpoint = ollamaApiUrl + "/v1/chat/completions";
+            this.defaultModel = ollamaModel;
+        } else {
+            this.endpoint = "https://integrate.api.nvidia.com/v1/chat/completions";
+            this.defaultModel = "";
+        }
+        
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(15))
                 .build();
@@ -29,14 +46,16 @@ public class NvidiaNimClient {
     }
 
     public String generate(String systemPrompt, String userMessage, String modelName) {
-        if (apiKey == null || apiKey.trim().isEmpty()) {
+        String targetModel = "ollama".equals(this.provider) ? this.defaultModel : modelName;
+
+        if ("nvidia".equals(this.provider) && (apiKey == null || apiKey.trim().isEmpty())) {
             throw new IllegalStateException("NVIDIA NIM API key is not configured. Please set the NVIDIA_NIM_API_KEY environment variable in your .env file.");
         }
 
         try {
-            // Build the chat completion request payload
+            // Build the chat completion request payload (OpenAI & Ollama OpenAI compatible formats)
             ObjectNode requestBody = objectMapper.createObjectNode();
-            requestBody.put("model", modelName);
+            requestBody.put("model", targetModel);
             requestBody.put("temperature", 0.7);
             requestBody.put("max_tokens", 1500);
 
@@ -54,24 +73,27 @@ public class NvidiaNimClient {
 
             String requestBodyJson = objectMapper.writeValueAsString(requestBody);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(nimEndpoint))
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                    .uri(URI.create(endpoint))
                     .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer " + apiKey)
                     .POST(HttpRequest.BodyPublishers.ofString(requestBodyJson))
-                    .timeout(Duration.ofSeconds(30))
-                    .build();
+                    .timeout(Duration.ofSeconds(45)); // reasoning models can take slightly longer
 
+            if ("nvidia".equals(this.provider)) {
+                requestBuilder.header("Authorization", "Bearer " + apiKey);
+            }
+
+            HttpRequest request = requestBuilder.build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
                 JsonNode rootNode = objectMapper.readTree(response.body());
                 return rootNode.path("choices").get(0).path("message").path("content").asText();
             } else {
-                throw new RuntimeException("NVIDIA NIM API returned error status: " + response.statusCode() + " - " + response.body());
+                throw new RuntimeException("LLM API returned error status: " + response.statusCode() + " - " + response.body());
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to call NVIDIA NIM API: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to call LLM Engine (" + this.provider + "): " + e.getMessage(), e);
         }
     }
 }
